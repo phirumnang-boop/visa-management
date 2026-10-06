@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { storage } from './src/db/storage.ts';
@@ -375,7 +376,14 @@ async function startServer() {
   // ==========================================
 
   // Static public assets (fonts, images, etc.)
-  app.use(express.static(path.join(process.cwd(), 'public')));
+  let publicPath = path.join(process.cwd(), 'public');
+  if (!fs.existsSync(publicPath)) {
+    const parentPublic = path.resolve(process.cwd(), '..', 'public');
+    if (fs.existsSync(parentPublic)) {
+      publicPath = parentPublic;
+    }
+  }
+  app.use(express.static(publicPath));
 
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -384,7 +392,14 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    let distPath = path.join(process.cwd(), 'dist');
+    // Robust fallback if running inside 'src' subdirectory
+    if (!fs.existsSync(distPath)) {
+      const parentDist = path.resolve(process.cwd(), '..', 'dist');
+      if (fs.existsSync(parentDist)) {
+        distPath = parentDist;
+      }
+    }
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));

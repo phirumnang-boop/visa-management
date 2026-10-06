@@ -35,7 +35,12 @@ interface FileStorageData {
   settings: Record<string, any>;
 }
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+let DATA_DIR = path.join(process.cwd(), 'data');
+// Robust fallback if running inside 'src' subdirectory
+if (!fs.existsSync(DATA_DIR) && process.cwd().endsWith('src')) {
+  const parentData = path.resolve(process.cwd(), '..', 'data');
+  DATA_DIR = parentData;
+}
 const DATA_FILE = path.join(DATA_DIR, 'app_storage.json');
 
 class FilePersistence {
